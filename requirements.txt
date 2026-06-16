@@ -1,0 +1,14 @@
+Django>=5.2
+djangorestframework>=3.14.0
+python-decouple>=3.8
+requests>=2.31.0
+polyline>=2.0.0
+
+# Production dependencies (install when DEBUG=False)
+# psycopg2-binary>=2.9.9
+# django-redis>=5.4.0
+
+# Testing
+pytest>=7.4.0
+pytest-django>=4.7.0
+responses>=0.24.0
