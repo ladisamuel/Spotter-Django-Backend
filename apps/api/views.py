@@ -1,16 +1,4 @@
-
-"""
-API Views for route optimization.
-
-This module orchestrates the entire optimization pipeline:
-1. Check cache for existing result
-2. If miss: call RouteService for route computation
-3. Call OptimizationService for fuel stop planning
-4. Cache the result
-5. Return formatted response
-
-Also includes a custom exception handler for consistent error responses.
-"""
+ 
 
 import logging
 
@@ -34,11 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 def custom_exception_handler(exc, context):
-    """
-    Custom DRF exception handler for consistent error formatting.
-    
-    Returns structured JSON errors with appropriate HTTP status codes.
-    """
+ 
     from rest_framework.views import exception_handler
     
     # First, let DRF handle standard exceptions
@@ -70,7 +54,7 @@ def custom_exception_handler(exc, context):
 
 class RouteOptimizeView(APIView):
     """
-    POST /api/routes/optimize/
+    POST /routes/
     
     Compute optimal driving route with fuel stops.
     

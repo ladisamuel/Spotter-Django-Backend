@@ -1,15 +1,10 @@
-"""
-API Serializers for route optimization requests and responses.
-"""
-
+ 
 from rest_framework import serializers
 from utils.exceptions import SameLocationError
 
 
 class RouteOptimizeRequestSerializer(serializers.Serializer):
-    """
-    Validates incoming route optimization requests.
-    """
+ 
     start = serializers.CharField(
         max_length=200,
         trim_whitespace=True,
@@ -22,7 +17,6 @@ class RouteOptimizeRequestSerializer(serializers.Serializer):
     )
     
     def validate(self, data):
-        """Ensure start and destination are not identical."""
         start = data.get('start', '').strip().lower()
         destination = data.get('destination', '').strip().lower()
         
@@ -35,7 +29,6 @@ class RouteOptimizeRequestSerializer(serializers.Serializer):
 
 
 class FuelStopSerializer(serializers.Serializer):
-    """Individual fuel stop in the response."""
     station_name = serializers.CharField()
     city = serializers.CharField()
     state = serializers.CharField()
@@ -44,9 +37,7 @@ class FuelStopSerializer(serializers.Serializer):
 
 
 class RouteOptimizeResponseSerializer(serializers.Serializer):
-    """
-    Formatted response for route optimization.
-    """
+
     start = serializers.CharField()
     destination = serializers.CharField()
     distance_miles = serializers.FloatField()

@@ -30,13 +30,7 @@ from utils.exceptions import (
 logger = logging.getLogger(__name__)
 
 
-class RouteService:
-    """
-    Service for computing driving routes using OSRM.
-    
-    Enforces a strict single-request policy: for any given start/destination,
-    exactly one OSRM API call is made. The result is cached via CacheService.
-    """
+class RouteService: 
 
     OSRM_BASE_URL = getattr(settings, 'OSRM_BASE_URL', 'http://router.project-osrm.org')
     OSRM_ENDPOINT = getattr(settings, 'OSRM_ROUTE_ENDPOINT', '/route/v1/driving/')
@@ -45,21 +39,7 @@ class RouteService:
 
     @classmethod
     def geocode_location(cls, location: str) -> Tuple[float, float]:
-        """
-        Convert a location string to latitude/longitude coordinates.
-        
-        Uses Nominatim (OpenStreetMap) geocoding. For production, consider
-        a paid geocoding service for higher reliability and rate limits.
-        
-        Args:
-            location: Human-readable location (e.g., "New York, United States")
-        
-        Returns:
-            Tuple of (latitude, longitude)
-        
-        Raises:
-            InvalidLocationError: If location cannot be resolved
-        """
+         
         try:
             query = quote(location)
             url = f"https://nominatim.openstreetmap.org/search?q={query}&format=jsonv2&limit=1"
@@ -140,33 +120,8 @@ class RouteService:
         cls,
         start: str,
         destination: str
-    ) -> dict:
-        """
-        Compute a driving route between two locations.
+    ) -> dict: 
         
-        This method makes exactly ONE request to the OSRM API:
-        - Geocodes start and destination (2 Nominatim calls, cached separately)
-        - Calls OSRM /route endpoint once
-        - Returns route metadata including encoded geometry
-        
-        Args:
-            start: Start location string
-            destination: Destination location string
-        
-        Returns:
-            Dictionary with keys:
-                - distance_miles: Total route distance
-                - duration_seconds: Estimated driving time
-                - geometry: Encoded polyline string
-                - start_coords: (lat, lon) tuple
-                - end_coords: (lat, lon) tuple
-        
-        Raises:
-            InvalidLocationError: If start or destination cannot be geocoded
-            NoRouteError: If no drivable route exists
-            RoutingAPIError: If OSRM fails after retries
-        """
-        # Step 1: Geocode both locations
         logger.info(f"Computing route: '{start}' -> '{destination}'")
         
         print('\n\n\ Geocoding start', )
@@ -177,15 +132,12 @@ class RouteService:
         
         
         print('Geocoding done', )        
-        # Validate they're not the same point
         if abs(start_coords[0] - end_coords[0]) < 0.001 and abs(start_coords[1] - end_coords[1]) < 0.001:
             print('\n\n validate they are not same point', )          
             raise InvalidLocationError(
                 "Start and destination are too close or identical."
             )
         
-        # Step 2: Build OSRM request URL
-        # Format: {base}/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=polyline
         coords = f"{start_coords[1]},{start_coords[0]};{end_coords[1]},{end_coords[0]}"
         url = (
             f"{cls.OSRM_BASE_URL}{cls.OSRM_ENDPOINT}{coords}"
@@ -194,7 +146,6 @@ class RouteService:
         
         logger.info(f"OSRM request: {url}")
         
-        # Step 3: Make request with retry logic
         last_error = None
         for attempt in range(cls.MAX_RETRIES + 1):
             try:
@@ -205,7 +156,6 @@ class RouteService:
                 
                 print('\n\n get route data', data)
                 
-                # Check OSRM-specific status
                 if data.get('code') != 'Ok':
                     if data.get('code') == 'NoRoute':
                         raise NoRouteError(
@@ -217,20 +167,16 @@ class RouteService:
                         f"OSRM returned error code: {data.get('code')}"
                     )
                 
-                # Extract route data
                 route = data['routes'][0]
                 
-                # OSRM returns distance in meters, convert to miles
                 distance_meters = route['distance']
                 distance_miles = distance_meters / 1609.344
                 
                 print('\n\n\ distance_miles', distance_miles)
                 
-                # Duration in seconds
                 duration_seconds = route['duration']
                 print('\n\n\ duration_seconds for driving', duration_seconds)
                 
-                # Encoded geometry
                 geometry = route['geometry']
                 
                 result = {
@@ -262,7 +208,6 @@ class RouteService:
                 if attempt < cls.MAX_RETRIES:
                     time.sleep(2 ** attempt)
         
-        # All retries exhausted
         raise RoutingAPIError(
             f"Routing service failed after {cls.MAX_RETRIES + 1} attempts. "
             f"Last error: {last_error}"

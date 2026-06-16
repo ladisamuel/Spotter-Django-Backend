@@ -1,14 +1,4 @@
-"""
-CacheService abstraction layer.
-
-Provides a backend-agnostic caching interface. The rest of the application
-uses this service without knowing whether LocMemCache (dev) or Redis (prod)
-is active underneath.
-
-Cache key format: route:{normalized_start}:{normalized_destination}
-Default TTL: 24 hours (86400 seconds)
-"""
-
+ 
 import hashlib
 import json
 import logging
@@ -20,31 +10,14 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
-class CacheService:
-    """
-    Abstraction over Django's cache framework.
-    
-    Automatically uses the configured cache backend (LocMemCache in dev,
-    Redis in prod) without the calling code needing to know the difference.
-    
-    Cache Strategy:
-    - Key format: route:{start}:{destination} (normalized, lowercase, trimmed)
-    - TTL: 24 hours to balance freshness with API cost reduction
-    - Serialization: JSON for complex objects
-    - Fallback: On cache failure, log warning and proceed without cache
-    """
+class CacheService: 
 
     DEFAULT_TTL = getattr(settings, 'CACHE_TTL_SECONDS', 86400)
     KEY_PREFIX = 'route'
 
     @classmethod
     def _normalize_key(cls, start: str, destination: str) -> str:
-        """
-        Create a deterministic cache key from start/destination.
-        
-        Normalization ensures that "New York, United States" and "new york, united states"
-        map to the same cache key.
-        """
+ 
         normalized_start = start.strip().lower().replace(' ', '_')
         normalized_dest = destination.strip().lower().replace(' ', '_')
         
@@ -58,16 +31,7 @@ class CacheService:
 
     @classmethod
     def get(cls, start: str, destination: str) -> Optional[dict]:
-        """
-        Retrieve cached route result.
-        
-        Args:
-            start: Start location string
-            destination: Destination location string
-        
-        Returns:
-            Cached result dict or None if not found/expired
-        """
+ 
         key = cls._normalize_key(start, destination)
         
         try:
@@ -86,18 +50,7 @@ class CacheService:
 
     @classmethod
     def set(cls, start: str, destination: str, value: dict, ttl: int = None) -> bool:
-        """
-        Store route result in cache.
-        
-        Args:
-            start: Start location string
-            destination: Destination location string
-            value: Result dictionary to cache
-            ttl: Time-to-live in seconds (defaults to 24 hours)
-        
-        Returns:
-            True if cached successfully, False on failure
-        """
+ 
         key = cls._normalize_key(start, destination)
         ttl = ttl or cls.DEFAULT_TTL
         
@@ -113,16 +66,7 @@ class CacheService:
 
     @classmethod
     def delete(cls, start: str, destination: str) -> bool:
-        """
-        Remove a cached entry.
         
-        Args:
-            start: Start location string
-            destination: Destination location string
-        
-        Returns:
-            True if deleted or not found, False on error
-        """
         key = cls._normalize_key(start, destination)
         
         try:
@@ -135,12 +79,7 @@ class CacheService:
 
     @classmethod
     def clear_all(cls) -> bool:
-        """
-        Clear all cached route entries. Use with caution.
-        
-        Returns:
-            True if cleared successfully
-        """
+         
         try:
             cache.clear()
             logger.info("Cache cleared")

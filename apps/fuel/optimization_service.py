@@ -1,26 +1,3 @@
-"""
-OptimizationService - Greedy minimum-cost fuel stop selection.
-
-ALGORITHM OVERVIEW:
-1. Decode the route polyline into coordinate points
-2. Find all fuel stations within the route corridor
-3. Sort stations by distance along the route
-4. Greedily select the cheapest reachable station at each step
-5. Calculate total fuel cost based on actual fuel purchased
-
-KEY DESIGN DECISIONS:
-- Greedy approach: At each decision point, choose the cheapest station
-  within current fuel range. This is optimal for uniform tank capacity.
-- We assume the driver starts with a full tank.
-- Fuel purchased at each stop = amount needed to reach the next stop
-  (or fill up if destination is beyond next stop's range).
-- The algorithm ensures the vehicle never runs out of fuel.
-
-ASSUMPTIONS:
-- Vehicle range: 500 miles (from settings)
-- Fuel efficiency: 10 MPG = 50 gallon tank
-- Fuel prices are per gallon
-"""
 
 import logging
 from typing import List, Dict, Optional
@@ -33,13 +10,7 @@ from apps.fuel.fuel_service import FuelService
 logger = logging.getLogger(__name__)
 
 
-class OptimizationService:
-    """
-    Service for computing optimal fuel stops along a route.
-    
-    Uses a greedy algorithm to minimize total fuel cost while ensuring
-    the vehicle can complete the journey without running out of fuel.
-    """
+class OptimizationService: 
     
     VEHICLE_RANGE_MILES = getattr(settings, 'VEHICLE_RANGE_MILES', 500.0)
     FUEL_EFFICIENCY_MPG = getattr(settings, 'FUEL_EFFICIENCY_MPG', 10.0)
@@ -50,24 +21,7 @@ class OptimizationService:
         cls,
         route_geometry: str,
         route_distance_miles: float
-    ) -> dict:
-        """
-        Determine optimal fuel stops for a given route.
-        
-        Args:
-            route_geometry: Encoded polyline string from OSRM
-            route_distance_miles: Total route distance in miles
-        
-        Returns:
-            Dictionary with keys:
-                - fuel_stops: List of stop dicts
-                - total_fuel_gallons: Total fuel purchased
-                - total_fuel_cost: Total cost in dollars
-                - num_stops: Number of fuel stops
-        
-        Raises:
-            NoFuelStationError: If no valid fueling strategy exists
-        """
+    ) -> dict: 
         # Step 1: Decode route geometry
         route_points = decode_polyline(route_geometry)
         
@@ -95,125 +49,234 @@ class OptimizationService:
         # Step 3: Run greedy optimization
         return cls._greedy_optimize(stations, route_distance_miles)
     
+    # @classmethod
+    # def _greedy_optimize(
+    #     cls,
+    #     stations: List[dict],
+    #     route_distance_miles: float
+    # ) -> dict: 
+        
+    #     fuel_stops = []
+    #     total_fuel_gallons = 0.0
+    #     total_fuel_cost = 0.0
+        
+    #     # State tracking
+    #     current_position = 0.0  # miles from start
+    #     current_fuel_miles = cls.VEHICLE_RANGE_MILES  # miles of fuel remaining
+        
+    #     # Safety margin: don't cut it too close
+    #     safety_margin = 10.0  # miles
+        
+    #     max_iterations = len(stations) + 10
+    #     iteration = 0
+        
+    #     while current_position + current_fuel_miles < route_distance_miles:
+    #         iteration += 1
+    #         if iteration > max_iterations:
+    #             raise NoFuelStationError(
+    #                 "Optimization failed to converge. Possible loop in station selection."
+    #             )
+            
+    #         # Find all stations reachable from current position
+    #         reachable = [
+    #             s for s in stations
+    #             if current_position < s['distance_from_start'] <= (
+    #                 current_position + current_fuel_miles - safety_margin
+    #             )
+    #         ]
+            
+    #         if not reachable:
+    #             # Try without safety margin as last resort
+    #             reachable = [
+    #                 s for s in stations
+    #                 if current_position < s['distance_from_start'] <= (
+    #                     current_position + current_fuel_miles
+    #                 )
+    #             ]
+                
+    #             if not reachable:
+    #                 raise NoFuelStationError(
+    #                     f"No reachable fuel stations between mile {current_position:.1f} "
+    #                     f"and mile {current_position + current_fuel_miles:.1f}. "
+    #                     f"The route may have gaps in fuel station coverage."
+    #                 )
+            
+    #         # Select cheapest reachable station
+    #         # If multiple stations at same location with different prices,
+    #         # the cheapest one wins
+    #         cheapest = min(reachable, key=lambda s: s['retail_price'])
+            
+    #         # Calculate fuel needed to reach this station from current position
+    #         miles_to_station = cheapest['distance_from_start'] - current_position
+    #         fuel_used = miles_to_station / cls.FUEL_EFFICIENCY_MPG
+            
+    #         # Fuel remaining when arriving at station
+    #         fuel_remaining_gallons = (
+    #             cls.TANK_CAPACITY_GALLONS - fuel_used
+    #         )
+            
+    #         fuel_to_buy = cls.TANK_CAPACITY_GALLONS - fuel_remaining_gallons
+            
+    #         purchase_cost = fuel_to_buy * float(cheapest['retail_price'])
+            
+    #         # Record the stop
+    #         fuel_stops.append({
+    #             'station_name': cheapest['name'],
+    #             'city': cheapest['city'],
+    #             'state': cheapest['state'],
+    #             'price': round(cheapest['retail_price'], 3),
+    #             'distance_from_start': round(cheapest['distance_from_start'], 1),
+    #             'fuel_gallons': round(fuel_to_buy, 2),
+    #             'cost': round(purchase_cost, 2),
+    #         })
+            
+    #         # Update totals
+    #         total_fuel_gallons += fuel_to_buy
+    #         total_fuel_cost += purchase_cost
+            
+    #         # Update state: we're now at the station with a full tank
+    #         current_position = cheapest['distance_from_start']
+    #         current_fuel_miles = cls.VEHICLE_RANGE_MILES
+            
+    #         logger.info(
+    #             f"Stop #{len(fuel_stops)}: {cheapest['name']} at "
+    #             f"mile {current_position:.1f}, ${cheapest['retail_price']}/gal"
+    #         )
+        
+    #     # Final leg: destination is now reachable
+    #     final_leg = route_distance_miles - current_position
+    #     logger.info(
+    #         f"Final leg: {final_leg:.1f} miles to destination. "
+    #         f"Total stops: {len(fuel_stops)}, Total cost: ${total_fuel_cost:.2f}"
+    #     )
+        
+    #     return {
+    #         'fuel_stops': fuel_stops,
+    #         'total_fuel_gallons': round(total_fuel_gallons, 2),
+    #         'total_fuel_cost': round(total_fuel_cost, 2),
+    #         'num_stops': len(fuel_stops),
+    #     }
+        
+        
+            
     @classmethod
     def _greedy_optimize(
         cls,
         stations: List[dict],
         route_distance_miles: float
-    ) -> dict:
+        ) -> dict:
         """
-        Greedy fuel stop selection algorithm.
-        
-        Starting with a full tank, at each step:
-        1. Find all stations reachable within current fuel range
-        2. Select the cheapest one
-        3. Buy enough fuel to reach that station (or fill up)
-        4. Repeat until destination is reachable
-        
-        Args:
-            stations: List of station dicts sorted by distance_from_start
-            route_distance_miles: Total route distance
-        
-        Returns:
-            Optimization result dict
+        Determine fuel stops based on vehicle range.
+
+        Rules:
+        - Vehicle starts with a full tank.
+        - Vehicle range is VEHICLE_RANGE_MILES (default 500).
+        - One stop is selected for each required refuel interval.
+        - The cheapest station in each interval is chosen.
+        - Tank is assumed to be filled completely at each stop.
         """
-        fuel_stops = []
-        total_fuel_gallons = 0.0
-        total_fuel_cost = 0.0
-        
-        # State tracking
-        current_position = 0.0  # miles from start
-        current_fuel_miles = cls.VEHICLE_RANGE_MILES  # miles of fuel remaining
-        
-        # Safety margin: don't cut it too close
-        safety_margin = 10.0  # miles
-        
-        max_iterations = len(stations) + 10
-        iteration = 0
-        
-        while current_position + current_fuel_miles < route_distance_miles:
-            iteration += 1
-            if iteration > max_iterations:
-                raise NoFuelStationError(
-                    "Optimization failed to converge. Possible loop in station selection."
-                )
-            
-            # Find all stations reachable from current position
-            reachable = [
-                s for s in stations
-                if current_position < s['distance_from_start'] <= (
-                    current_position + current_fuel_miles - safety_margin
-                )
-            ]
-            
-            if not reachable:
-                # Try without safety margin as last resort
-                reachable = [
-                    s for s in stations
-                    if current_position < s['distance_from_start'] <= (
-                        current_position + current_fuel_miles
-                    )
-                ]
-                
-                if not reachable:
-                    raise NoFuelStationError(
-                        f"No reachable fuel stations between mile {current_position:.1f} "
-                        f"and mile {current_position + current_fuel_miles:.1f}. "
-                        f"The route may have gaps in fuel station coverage."
-                    )
-            
-            # Select cheapest reachable station
-            # If multiple stations at same location with different prices,
-            # the cheapest one wins
-            cheapest = min(reachable, key=lambda s: s['retail_price'])
-            
-            # Calculate fuel needed to reach this station from current position
-            miles_to_station = cheapest['distance_from_start'] - current_position
-            fuel_used = miles_to_station / cls.FUEL_EFFICIENCY_MPG
-            
-            # Fuel remaining when arriving at station
-            fuel_remaining_gallons = (
-                cls.TANK_CAPACITY_GALLONS - fuel_used
-            )
-            
-            fuel_to_buy = cls.TANK_CAPACITY_GALLONS - fuel_remaining_gallons
-            
-            purchase_cost = fuel_to_buy * float(cheapest['retail_price'])
-            
-            # Record the stop
-            fuel_stops.append({
-                'station_name': cheapest['name'],
-                'city': cheapest['city'],
-                'state': cheapest['state'],
-                'price': round(cheapest['retail_price'], 3),
-                'distance_from_start': round(cheapest['distance_from_start'], 1),
-                'fuel_gallons': round(fuel_to_buy, 2),
-                'cost': round(purchase_cost, 2),
-            })
-            
-            # Update totals
-            total_fuel_gallons += fuel_to_buy
-            total_fuel_cost += purchase_cost
-            
-            # Update state: we're now at the station with a full tank
-            current_position = cheapest['distance_from_start']
-            current_fuel_miles = cls.VEHICLE_RANGE_MILES
-            
-            logger.info(
-                f"Stop #{len(fuel_stops)}: {cheapest['name']} at "
-                f"mile {current_position:.1f}, ${cheapest['retail_price']}/gal"
-            )
-        
-        # Final leg: destination is now reachable
-        final_leg = route_distance_miles - current_position
-        logger.info(
-            f"Final leg: {final_leg:.1f} miles to destination. "
-            f"Total stops: {len(fuel_stops)}, Total cost: ${total_fuel_cost:.2f}"
+
+        import math
+
+        if route_distance_miles <= cls.VEHICLE_RANGE_MILES:
+            return {
+                "fuel_stops": [],
+                "total_fuel_gallons": 0.0,
+                "total_fuel_cost": 0.0,
+                "num_stops": 0,
+            }
+
+        stations = sorted(
+            stations,
+            key=lambda s: s["distance_from_start"]
         )
-        
+
+        fuel_stops = []
+        total_fuel_cost = 0.0
+        total_fuel_gallons = 0.0
+
+        range_miles = cls.VEHICLE_RANGE_MILES
+        tank_gallons = cls.TANK_CAPACITY_GALLONS
+
+        # Example:
+        # 1201 miles / 500 range = 2 required refuels
+        num_required_stops = (
+            math.ceil(route_distance_miles / range_miles) - 1
+        )
+
+        for stop_index in range(1, num_required_stops + 1):
+
+            segment_start = (stop_index - 1) * range_miles
+            segment_end = stop_index * range_miles
+
+            candidates = [
+                station
+                for station in stations
+                if segment_start <
+                station["distance_from_start"] <= segment_end
+            ]
+
+            if not candidates:
+                raise NoFuelStationError(
+                    f"No fuel station found between "
+                    f"mile {segment_start:.1f} and "
+                    f"mile {segment_end:.1f}"
+                )
+
+            selected = min(
+                candidates,
+                key=lambda s: float(s["retail_price"])
+            )
+
+            gallons_purchased = tank_gallons
+            stop_cost = (
+                gallons_purchased *
+                float(selected["retail_price"])
+            )
+
+            fuel_stops.append({
+                "station_name": selected["name"],
+                "city": selected["city"],
+                "state": selected["state"],
+                "price": round(
+                    float(selected["retail_price"]),
+                    3
+                ),
+                "distance_from_start": round(
+                    selected["distance_from_start"],
+                    1
+                ),
+                "fuel_gallons": round(
+                    gallons_purchased,
+                    2
+                ),
+                "cost": round(
+                    stop_cost,
+                    2
+                ),
+            })
+
+            total_fuel_gallons += gallons_purchased
+            total_fuel_cost += stop_cost
+
+            logger.info(
+                f"Selected stop #{stop_index}: "
+                f"{selected['name']} "
+                f"at mile {selected['distance_from_start']:.1f} "
+                f"(${selected['retail_price']}/gal)"
+            )
+
         return {
-            'fuel_stops': fuel_stops,
-            'total_fuel_gallons': round(total_fuel_gallons, 2),
-            'total_fuel_cost': round(total_fuel_cost, 2),
-            'num_stops': len(fuel_stops),
+            "fuel_stops": fuel_stops,
+            "total_fuel_gallons": round(
+                total_fuel_gallons,
+                2
+            ),
+            "total_fuel_cost": round(
+                total_fuel_cost,
+                2
+            ),
+            "num_stops": len(fuel_stops),
         }
+        
+    

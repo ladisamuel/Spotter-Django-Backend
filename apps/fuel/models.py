@@ -47,7 +47,6 @@ class FuelStation(models.Model):
         return f"{self.name} ({self.city}, {self.state}) - ${self.retail_price}"
 
     def save(self, *args, **kwargs):
-        """Auto-populate the PostGIS geometry field in production."""
         if not settings.DEBUG and self.location is None:
             from django.contrib.gis.geos import Point
             self.location = Point(

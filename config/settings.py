@@ -1,10 +1,4 @@
-"""
-Django settings for route_optimizer project.
-
-Dual-mode architecture:
-- DEBUG=True:  SQLite, LocMemCache, Python geospatial math
-- DEBUG=False: PostgreSQL+PostGIS, Redis, database-level spatial queries
-"""
+ 
 
 import os
 from pathlib import Path

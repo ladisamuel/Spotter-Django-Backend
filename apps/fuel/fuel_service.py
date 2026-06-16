@@ -1,13 +1,4 @@
-"""
-FuelService - Station discovery and filtering.
-
-Provides two implementations based on DEBUG mode:
-- Development: Bounding‑box reduction + Python Haversine filtering (no PostGIS)
-- Production: PostGIS ST_DWithin spatial queries (database-level, indexed)
-
-This abstraction allows the OptimizationService to work identically
-in both environments without mode-specific logic.
-"""
+ 
 
 import logging
 import math
@@ -23,17 +14,7 @@ from utils.exceptions import EmptyDatasetError
 logger = logging.getLogger(__name__)
 
 
-class FuelService:
-    """
-    Service for finding fuel stations near a route.
-    
-    Mode-Aware Implementation:
-    - DEBUG=True:  Bounding‑box + Haversine filtering in Python
-    - DEBUG=False: Uses PostGIS ST_DWithin for efficient spatial queries
-    
-    The corridor width determines how far from the route we search.
-    Default: 25 miles (configurable via ROUTE_CORRIDOR_WIDTH_MILES)
-    """
+class FuelService: 
 
     CORRIDOR_WIDTH_MILES = getattr(settings, 'ROUTE_CORRIDOR_WIDTH_MILES', 25.0)
 
@@ -43,22 +24,7 @@ class FuelService:
         route_points: List[tuple],
         corridor_width: float = None
     ) -> List[dict]:
-        """
-        Find all fuel stations within a corridor of the route.
-        
-        Args:
-            route_points: List of (lat, lon) tuples decoded from polyline
-            corridor_width: Search distance in miles (default from settings)
-        
-        Returns:
-            List of station dicts with keys:
-                - id, truckstop_id, name, city, state
-                - latitude, longitude, retail_price
-                - distance_from_start (miles along route)
-        
-        Raises:
-            EmptyDatasetError: If no fuel stations exist in the database
-        """
+       
         if not route_points:
             return []
         
@@ -124,14 +90,7 @@ class FuelService:
 
     @classmethod
     def _filter_dev(cls, route_points: List[tuple], width: float) -> List[dict]:
-        """
-        Development mode: Bounding‑box + Haversine filtering.
-        
-        Optimisation:
-        1. Compute bounding box around the route (expanded by width).
-        2. Query only stations with latitude/longitude inside that box.
-        3. For each candidate, perform exact corridor check.
-        """
+   
         from utils.geospatial import (
             find_closest_point_on_route,
             calculate_route_distance,
@@ -227,9 +186,7 @@ class FuelService:
 
     @classmethod
     def get_station_by_id(cls, station_id: int) -> Optional[dict]:
-        """
-        Retrieve a single station by ID.
-        """
+   
         try:
             station = FuelStation.objects.get(id=station_id)
             return {
